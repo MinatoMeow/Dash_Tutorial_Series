@@ -16,11 +16,11 @@ server = app.server
 app.title = 'NYC Wi-Fi Hotspots'
 
 # API keys and datasets
-mapbox_access_token = 'USE YOUR MAPBOX KEY HERE'
-map_data = pd.read_csv("nyc-wi-fi-hotspot-locations.csv")
+mapbox_access_token = 'pk.eyJ1IjoibWluYXRvbWVvdyIsImEiOiJjazh0MmQ2bW0wZDhqM2ttdGlic2NhaGR1In0.3dbo0oBg5lNdtwvvo1-ydQ'
+map_data = pd.read_csv("https://raw.githubusercontent.com/MinatoMeow/StormData/master/SELocations.csv")
 
 # Selecting only required columns
-map_data = map_data[["Borough", "Type", "Provider", "Name", "Location", "Latitude", "Longitude"]].drop_duplicates()
+map_data = map_data[["Event_ID","Location", "Latitude", "Longitude"]].drop_duplicates()
 
 # Boostrap CSS.
 app.css.append_css({'external_url': 'https://codepen.io/amyoshino/pen/jzXypZ.css'})
@@ -79,14 +79,13 @@ def gen_map(map_data):
     # classification value.
     return {
         "data": [{
-                "type": "scattermapbox",
                 "lat": list(map_data['Latitude']),
                 "lon": list(map_data['Longitude']),
                 "hoverinfo": "text",
-                "hovertext": [["Name: {} <br>Type: {} <br>Provider: {}".format(i,j,k)]
-                                for i,j,k in zip(map_data['Name'], map_data['Type'],map_data['Provider'])],
+                "hovertext": [["Event_ID: {}".format(i,j,k)]
+                                for i,j,k in zip(map_data['Event_ID'])],
                 "mode": "markers",
-                "name": list(map_data['Name']),
+                "name": list(map_data['Location']),
                 "marker": {
                     "size": 6,
                     "opacity": 0.7
@@ -124,37 +123,6 @@ app.layout = html.Div(
         # Selectors
         html.Div(
             [
-                html.Div(
-                    [
-                        html.P('Choose Borroughs:'),
-                        dcc.Checklist(
-                                id = 'boroughs',
-                                options=[
-                                    {'label': 'Manhattan', 'value': 'MN'},
-                                    {'label': 'Bronx', 'value': 'BX'},
-                                    {'label': 'Queens', 'value': 'QU'},
-                                    {'label': 'Brooklyn', 'value': 'BK'},
-                                    {'label': 'Staten Island', 'value': 'SI'}
-                                ],
-                                values=['MN', 'BX', "QU",  'BK', 'SI'],
-                                labelStyle={'display': 'inline-block'}
-                        ),
-                    ],
-                    className='six columns',
-                    style={'margin-top': '10'}
-                ),
-                html.Div(
-                    [
-                        html.P('Type:'),
-                        dcc.Dropdown(
-                            id='type',
-                            options= [{'label': str(item),
-                                                  'value': str(item)}
-                                                 for item in set(map_data['Type'])],
-                            multi=True,
-                            value=list(set(map_data['Type']))
-                        )
-                    ],
                     className='six columns',
                     style={'margin-top': '10'}
                 )
@@ -216,16 +184,9 @@ def map_selection(rows, selected_row_indices):
 
 @app.callback(
     Output('datatable', 'rows'),
-    [Input('type', 'value'),
-     Input('boroughs', 'values')])
-def update_selected_row_indices(type, borough):
-    map_aux = map_data.copy()
+     map_aux = map_data.copy()
 
-    # Type filter
-    map_aux = map_aux[map_aux['Type'].isin(type)]
-    # Boroughs filter
-    map_aux = map_aux[map_aux["Borough"].isin(borough)]
-
+                
     rows = map_aux.to_dict('records')
     return rows
 
@@ -255,14 +216,7 @@ def update_figure(rows, selected_row_indices):
             zeroline='hidden'
         )
     )
-
-    data = Data([
-         go.Bar(
-             x=dff.groupby('Borough', as_index = False).count()['Borough'],
-             y=dff.groupby('Borough', as_index = False).count()['Type']
-         )
-     ])
-
+   
     return go.Figure(data=data, layout=layout)
 
 if __name__ == '__main__':
